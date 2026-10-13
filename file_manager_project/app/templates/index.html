@@ -1,0 +1,183 @@
+<!-- app/templates/index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Modern File Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 80%;
+            max-width: 800px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .file-upload {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 2px dashed #999;
+            border-radius: 8px;
+            background: #fafafa;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+        .file-upload.dragover {
+            border-color: #2196F3;
+        }
+        .file-upload input[type="file"] {
+            display: none;
+        }
+        .file-list {
+            margin-top: 20px;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 6px;
+        }
+        .file-item a {
+            margin-left: 10px;
+            text-decoration: none;
+            color: #2196F3;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #1a73e8;
+        }
+        .hidden {
+            display: none;
+        }
+        .error-message {
+            color: red;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Modern File Manager</h1>
+        <div class="file-upload" id="drop-area">
+            <form id="file-form" method="post" enctype="multipart/form-data">
+                <input type="file" id="file-input" name="file" multiple>
+                <p>Drag & drop files here or click to upload</p>
+                <button type="button" onclick="document.getElementById('file-input').click();">Choose File</button>
+            </form>
+        </div>
+        <div class="error-message hidden" id="error-message"></div>
+        <div class="file-list">
+            <h2>Uploaded Files</h2>
+            <ul id="file-list">
+                {% for file in files %}
+                    <li class="file-item">
+                        <span>{{ file.file.name }}</span>
+                        <a href="{% url 'download_file' file.id %}">Download</a>
+                        <a href="{% url 'delete_file' file.id %}">Delete</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropArea = document.getElementById('drop-area');
+            const fileInput = document.getElementById('file-input');
+            const fileForm = document.getElementById('file-form');
+            const fileList = document.getElementById('file-list');
+            const errorMessage = document.getElementById('error-message');
+
+            // Drag and drop events
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
+                dropArea.addEventListener(event, preventDefaults, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(event => {
+                dropArea.addEventListener(event, () => dropArea.classList.add('dragover'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(event => {
+                dropArea.addEventListener(event, () => dropArea.classList.remove('dragover'), false);
+            });
+
+            dropArea.addEventListener('drop', handleDrop, false);
+            fileInput.addEventListener('change', handleFileUpload, false);
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            function handleDrop(e) {
+                const files = e.dataTransfer.files;
+                handleFiles(files);
+            }
+
+            function handleFileUpload(e) {
+                const files = e.target.files;
+                handleFiles(files);
+            }
+
+            function handleFiles(files) {
+                [...files].forEach(uploadFile);
+            }
+
+            function uploadFile(file) {
+                const url = '';
+                const formData = new FormData();
+                formData.append('file', file);
+
+                fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                }).then(response => response.json())
+                  .then(data => {
+                      if (data.error) {
+                          showError(data.error);
+                      } else {
+                          addFileToList(data.file);
+                      }
+                  });
+            }
+
+            function addFileToList(file) {
+                const listItem = document.createElement('li');
+                listItem.className = 'file-item';
+                listItem.innerHTML = `
+                    <span>${file.name}</span>
+                    <a href="/download/${file.id}/">Download</a>
+                    <a href="/delete/${file.id}/">Delete</a>
+                `;
+                fileList.appendChild(listItem);
+            }
+
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
